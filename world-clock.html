@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horloge mondiale — Zone MEA</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23FF7900'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.2.3/css/flag-icons.min.css">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-elevated: #f7f5f2;
+    --text: #1a1a1a;
+    --text-dim: #6b6b6b;
+    --border: #e4e0da;
+    --accent: #FF7900;
+    --accent-dim: #ffe4c7;
+    --card-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    --now-badge-bg: #fff0e0;
+    --now-badge-text: #b35700;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17140f;
+      --bg-elevated: #211c15;
+      --text: #f3efe8;
+      --text-dim: #a49a8a;
+      --border: #3a3225;
+      --accent: #FF7900;
+      --accent-dim: #4a2f10;
+      --card-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      --now-badge-bg: #3a2410;
+      --now-badge-text: #ffb066;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17140f;
+    --bg-elevated: #211c15;
+    --text: #f3efe8;
+    --text-dim: #a49a8a;
+    --border: #3a3225;
+    --accent: #FF7900;
+    --accent-dim: #4a2f10;
+    --card-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    --now-badge-bg: #3a2410;
+    --now-badge-text: #ffb066;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+
+  header {
+    margin-bottom: 28px;
+  }
+
+  h1 {
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 15px;
+    margin: 0 0 18px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+
+  .utc-strip {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    flex-wrap: wrap;
+  }
+
+  .utc-strip .label {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-variant: normal;
+  }
+
+  .utc-strip .value {
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+  }
+
+  .group {
+    margin-top: 28px;
+  }
+
+  .group:first-child {
+    margin-top: 24px;
+  }
+
+  .group-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: var(--card-shadow);
+    position: relative;
+  }
+
+  .card .country {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 2px;
+  }
+
+  .card .flag {
+    margin-right: 6px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+    vertical-align: -1px;
+  }
+
+  .pin-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+  }
+
+  .pin-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: scale(1.06);
+  }
+
+  .pin-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .card.highlight {
+    border: 1.5px solid var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .card.highlight .time {
+    color: var(--accent);
+  }
+
+  .card .zone {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .card .time {
+    font-size: 30px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: var(--accent);
+  }
+
+  .card .date {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .card .offsets {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .card .offsets b {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 100px;
+    background: var(--now-badge-bg);
+    color: var(--now-badge-text);
+  }
+
+  footer {
+    margin-top: 32px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  @media (max-width: 420px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    .card .time { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Horloge mondiale — Zone MEA</h1>
+    <p class="subtitle">Heure actuelle dans chaque pays, avec décalage GMT/UTC, pour planifier vos réunions.</p>
+    <div class="utc-strip">
+      <span class="label">UTC</span>
+      <span class="value" id="utc-time">--:--:--</span>
+      <span class="label" id="utc-date" style="margin-left:8px;">—</span>
+      <span class="label" style="margin-left:16px;">GMT</span>
+      <span class="value" id="gmt-time">--:--:--</span>
+      <span class="label" style="margin-left:16px;">ECT</span>
+      <span class="value" id="ect-time">--:--:--</span>
+    </div>
+  </header>
+
+  <div id="pinned"></div>
+
+  <div id="groups"></div>
+
+  <footer>Les heures se mettent à jour automatiquement (y compris les changements d'heure d'été/hiver là où ils s'appliquent).</footer>
+</div>
+
+<script>
+const countries = [
+  { name: "Maroc", iso: "ma", tz: "Africa/Casablanca", offsetOverride: 0 },
+  { name: "Montréal", iso: "ca", tz: "America/Toronto" },
+  { name: "Botswana", iso: "bw", tz: "Africa/Gaborone" },
+  { name: "Burkina Faso", iso: "bf", tz: "Africa/Ouagadougou" },
+  { name: "Cameroun", iso: "cm", tz: "Africa/Douala" },
+  { name: "Côte d'Ivoire", iso: "ci", tz: "Africa/Abidjan" },
+  { name: "Égypte", iso: "eg", tz: "Africa/Cairo" },
+  { name: "France", iso: "fr", tz: "Europe/Paris" },
+  { name: "Guinée", iso: "gn", tz: "Africa/Conakry" },
+  { name: "Guinée-Bissau", iso: "gw", tz: "Africa/Bissau" },
+  { name: "Jordanie", iso: "jo", tz: "Asia/Amman" },
+  { name: "Liberia", iso: "lr", tz: "Africa/Monrovia" },
+  { name: "Madagascar", iso: "mg", tz: "Indian/Antananarivo" },
+  { name: "Mali", iso: "ml", tz: "Africa/Bamako" },
+  { name: "République Démocratique du Congo", iso: "cd", tz: "Africa/Kinshasa" },
+  { name: "Sénégal", iso: "sn", tz: "Africa/Dakar" },
+  { name: "Sierra Leone", iso: "sl", tz: "Africa/Freetown" },
+  { name: "Tunisie", iso: "tn", tz: "Africa/Tunis" },
+];
+
+// Which countries are currently pinned (shown highlighted, at the top).
+// Maroc, Montréal and France start pinned; the user can pin/unpin any card.
+const pinnedSet = new Set(["Maroc", "Montréal", "France"]);
+
+const pinnedEl = document.getElementById('pinned');
+const groupsEl = document.getElementById('groups');
+
+function getOffsetMinutes(tz, date) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  const parts = dtf.formatToParts(date).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  const asUTC = Date.UTC(
+    parseInt(parts.year), parseInt(parts.month) - 1, parseInt(parts.day),
+    parts.hour === '24' ? 0 : parseInt(parts.hour), parseInt(parts.minute), parseInt(parts.second)
+  );
+  return Math.round((asUTC - date.getTime()) / 60000);
+}
+
+function formatOffset(mins) {
+  const sign = mins >= 0 ? '+' : '-';
+  const abs = Math.abs(mins);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `UTC${sign}${h}${m ? ':' + String(m).padStart(2, '0') : ''}`;
+}
+
+function formatGroupLabel(mins) {
+  if (mins === 0) return 'GMT';
+  const sign = mins > 0 ? '+' : '-';
+  const abs = Math.abs(mins);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return `GMT${sign}${h}${m ? ':' + String(m).padStart(2, '0') : ''}`;
+}
+
+// Returns { timeStr, dateStr, abbr, offset } for a country at a given instant.
+// If offsetOverride is set, the local time is computed manually from that fixed
+// offset instead of relying on the browser's timezone database (used when a
+// very recent real-world change isn't reflected in the client's tz data yet).
+function getDisplayInfo(c, now) {
+  if (c.offsetOverride !== undefined) {
+    const shifted = new Date(now.getTime() + c.offsetOverride * 60000);
+    const timeStr = new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: false
+    }).format(shifted);
+    const dateStr = new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long'
+    }).format(shifted);
+    return { timeStr, dateStr, abbr: formatGroupLabel(c.offsetOverride), offset: c.offsetOverride };
+  }
+
+  const offset = getOffsetMinutes(c.tz, now);
+  const timeStr = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: c.tz, hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(now);
+  const dateStr = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: c.tz, weekday: 'long', day: 'numeric', month: 'long'
+  }).format(now);
+  let abbr = '';
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: c.tz, timeZoneName: 'short'
+    }).formatToParts(now);
+    abbr = parts.find(p => p.type === 'timeZoneName')?.value || '';
+  } catch (e) {}
+  return { timeStr, dateStr, abbr, offset };
+}
+
+function togglePin(name) {
+  if (pinnedSet.has(name)) pinnedSet.delete(name);
+  else pinnedSet.add(name);
+  tick();
+}
+
+function renderCard(c, info, ectTimeStr) {
+  const isPinned = pinnedSet.has(c.name);
+  const capDateStr = info.dateStr.charAt(0).toUpperCase() + info.dateStr.slice(1);
+  const card = document.createElement('div');
+  card.className = 'card' + (isPinned ? ' highlight' : '');
+  card.innerHTML = `
+    <button class="pin-btn${isPinned ? ' active' : ''}" title="${isPinned ? 'Désépingler' : 'Épingler'}" aria-label="${isPinned ? 'Désépingler' : 'Épingler'} ${c.name}">📌</button>
+    <div class="country"><span class="flag fi fi-${c.iso}"></span> ${c.name}</div>
+    <div class="zone">${c.tz}</div>
+    <div class="time">${info.timeStr}</div>
+    <div class="date">${capDateStr}</div>
+    <div class="offsets">
+      <div><b>UTC</b> <span class="off-utc">${formatOffset(info.offset)}</span></div>
+      <div><b>Abrév.</b> <span class="off-abbr">${info.abbr}</span></div>
+      <div><b>ECT</b> <span class="off-ect">${ectTimeStr}</span></div>
+    </div>
+  `;
+  card.querySelector('.pin-btn').addEventListener('click', () => togglePin(c.name));
+  return card;
+}
+
+function tick() {
+  const now = new Date();
+
+  document.getElementById('utc-time').textContent =
+    now.toISOString().substring(11, 16);
+  document.getElementById('utc-date').textContent =
+    now.toLocaleDateString('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  // GMT is numerically the same as UTC
+  document.getElementById('gmt-time').textContent =
+    now.toISOString().substring(11, 16);
+
+  // ECT (European Central Time) — fixed UTC+1, no DST
+  const ectDate = new Date(now.getTime() + 60 * 60000);
+  const ectTimeStr = ectDate.toISOString().substring(11, 16);
+  document.getElementById('ect-time').textContent = ectTimeStr;
+
+  const withInfo = countries.map(c => ({ c, info: getDisplayInfo(c, now) }));
+
+  // Pinned countries always shown first, ungrouped, A→Z
+  const pinned = withInfo.filter(x => pinnedSet.has(x.c.name))
+    .sort((a, b) => a.c.name.localeCompare(b.c.name, 'fr'));
+  pinnedEl.innerHTML = '';
+  if (pinned.length) {
+    const section = document.createElement('div');
+    section.className = 'group';
+    const title = document.createElement('h2');
+    title.className = 'group-title';
+    title.textContent = '📌 Épinglé';
+    section.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    pinned.forEach(x => grid.appendChild(renderCard(x.c, x.info, ectTimeStr)));
+    section.appendChild(grid);
+    pinnedEl.appendChild(section);
+  }
+
+  // Remaining countries, grouped by current GMT offset (ascending), A→Z within each group
+  const rest = withInfo.filter(x => !pinnedSet.has(x.c.name));
+  const byOffset = new Map();
+  rest.forEach(x => {
+    if (!byOffset.has(x.info.offset)) byOffset.set(x.info.offset, []);
+    byOffset.get(x.info.offset).push(x);
+  });
+
+  const sortedOffsets = Array.from(byOffset.keys()).sort((a, b) => a - b);
+
+  groupsEl.innerHTML = '';
+  sortedOffsets.forEach(offset => {
+    const group = document.createElement('div');
+    group.className = 'group';
+
+    const title = document.createElement('h2');
+    title.className = 'group-title';
+    title.textContent = formatGroupLabel(offset);
+    group.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+
+    const members = byOffset.get(offset).sort((a, b) => a.c.name.localeCompare(b.c.name, 'fr'));
+    members.forEach(x => grid.appendChild(renderCard(x.c, x.info, ectTimeStr)));
+
+    group.appendChild(grid);
+    groupsEl.appendChild(group);
+  });
+}
+
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
