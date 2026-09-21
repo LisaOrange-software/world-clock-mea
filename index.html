@@ -248,6 +248,7 @@
     font-size: 15px;
     font-weight: 600;
     margin: 0 0 2px;
+    padding-right: 30px;
   }
 
   .card .flag {
@@ -335,13 +336,21 @@
   }
 
   .meeting-badge {
-    position: absolute;
-    top: 12px;
-    left: 14px;
+    display: inline-block;
     font-size: 10px;
     font-weight: 700;
-    padding: 3px 8px;
+    padding: 2px 8px;
     border-radius: 100px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .meeting-desc {
+    flex-basis: 100%;
+    margin: 0 0 2px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
   }
 
   .meeting-badge.open {
@@ -398,6 +407,7 @@
     </div>
 
     <div id="meeting-panel" class="meeting-panel" style="display:none;">
+      <p class="meeting-desc">Choisissez un pays et l'heure qui vous arrange dans ce pays : toutes les cartes ci-dessous se recalculeront pour montrer l'heure correspondante ailleurs, avec un badge 🟢 Ouvré / 🟠 Limite / 🟣 Fermé selon les horaires de bureau (8h-18h).</p>
       <label>
         Pays de référence
         <select id="ref-country"></select>
@@ -406,7 +416,7 @@
         Heure souhaitée
         <input type="time" id="ref-time">
       </label>
-      <button id="meeting-apply" class="meeting-apply-btn">Appliquer</button>
+      <button id="meeting-apply" class="meeting-apply-btn">Appliquer à tous les pays</button>
       <button id="meeting-reset" class="meeting-reset-btn">Revenir à l'heure actuelle</button>
     </div>
 
@@ -555,9 +565,8 @@ function renderCard(c, info, ectTimeStr, showBadge) {
   }
 
   card.innerHTML = `
-    ${badgeHtml}
     <button class="pin-btn${isPinned ? ' active' : ''}" title="${isPinned ? 'Désépingler' : 'Épingler'}" aria-label="${isPinned ? 'Désépingler' : 'Épingler'} ${c.name}">📌</button>
-    <div class="country"><span class="flag fi fi-${c.iso}"></span> ${c.name}</div>
+    <div class="country">${badgeHtml}<span class="flag fi fi-${c.iso}"></span> ${c.name}</div>
     <div class="zone">${c.tz}</div>
     <div class="time">${info.timeStr}</div>
     <div class="date">${capDateStr}</div>
