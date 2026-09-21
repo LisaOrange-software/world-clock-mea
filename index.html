@@ -104,6 +104,111 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .controls-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 180px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .meeting-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .meeting-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .meeting-panel {
+    margin-top: 12px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .meeting-panel label {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .meeting-panel select,
+  .meeting-panel input[type="time"] {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+  }
+
+  .meeting-apply-btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    height: 37px;
+  }
+
+  .meeting-reset-btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    height: 37px;
+  }
+
+  .meeting-indicator {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
   .grid {
     margin-top: 24px;
     display: grid;
@@ -229,16 +334,35 @@
     font-weight: 600;
   }
 
-  .badge {
+  .meeting-badge {
     position: absolute;
-    top: 14px;
-    right: 14px;
-    font-size: 10.5px;
-    font-weight: 600;
+    top: 12px;
+    left: 14px;
+    font-size: 10px;
+    font-weight: 700;
     padding: 3px 8px;
     border-radius: 100px;
-    background: var(--now-badge-bg);
-    color: var(--now-badge-text);
+  }
+
+  .meeting-badge.open {
+    background: rgba(34, 197, 94, 0.16);
+    color: #1a9c4a;
+  }
+
+  .meeting-badge.edge {
+    background: rgba(255, 121, 0, 0.16);
+    color: #b35700;
+  }
+
+  .meeting-badge.closed {
+    background: rgba(139, 92, 246, 0.16);
+    color: #7c4fd6;
+  }
+
+  .no-results {
+    color: var(--text-dim);
+    font-size: 14px;
+    padding: 20px 0;
   }
 
   footer {
@@ -267,6 +391,26 @@
       <span class="label" style="margin-left:16px;">ECT</span>
       <span class="value" id="ect-time">--:--:--</span>
     </div>
+
+    <div class="controls-row">
+      <input type="text" id="search" class="search-input" placeholder="🔍 Rechercher un pays...">
+      <button id="meeting-toggle" class="meeting-btn">🕒 Mode réunion</button>
+    </div>
+
+    <div id="meeting-panel" class="meeting-panel" style="display:none;">
+      <label>
+        Pays de référence
+        <select id="ref-country"></select>
+      </label>
+      <label>
+        Heure souhaitée
+        <input type="time" id="ref-time">
+      </label>
+      <button id="meeting-apply" class="meeting-apply-btn">Appliquer</button>
+      <button id="meeting-reset" class="meeting-reset-btn">Revenir à l'heure actuelle</button>
+    </div>
+
+    <div id="meeting-indicator" class="meeting-indicator"></div>
   </header>
 
   <div id="pinned"></div>
@@ -298,12 +442,26 @@ const countries = [
   { name: "Tunisie", iso: "tn", tz: "Africa/Tunis" },
 ];
 
-// Which countries are currently pinned (shown highlighted, at the top).
-// Maroc, Montréal and France start pinned; the user can pin/unpin any card.
 const pinnedSet = new Set(["Maroc", "Montréal", "France"]);
+
+let searchTerm = '';
+let meetingMode = false;
+let meetingInstant = null;
 
 const pinnedEl = document.getElementById('pinned');
 const groupsEl = document.getElementById('groups');
+const searchInput = document.getElementById('search');
+const meetingToggleBtn = document.getElementById('meeting-toggle');
+const meetingPanel = document.getElementById('meeting-panel');
+const refCountrySelect = document.getElementById('ref-country');
+const refTimeInput = document.getElementById('ref-time');
+const meetingApplyBtn = document.getElementById('meeting-apply');
+const meetingResetBtn = document.getElementById('meeting-reset');
+const meetingIndicator = document.getElementById('meeting-indicator');
+
+function normalize(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
 
 function getOffsetMinutes(tz, date) {
   const dtf = new Intl.DateTimeFormat('en-US', {
@@ -336,10 +494,6 @@ function formatGroupLabel(mins) {
   return `GMT${sign}${h}${m ? ':' + String(m).padStart(2, '0') : ''}`;
 }
 
-// Returns { timeStr, dateStr, abbr, offset } for a country at a given instant.
-// If offsetOverride is set, the local time is computed manually from that fixed
-// offset instead of relying on the browser's timezone database (used when a
-// very recent real-world change isn't reflected in the client's tz data yet).
 function getDisplayInfo(c, now) {
   if (c.offsetOverride !== undefined) {
     const shifted = new Date(now.getTime() + c.offsetOverride * 60000);
@@ -369,18 +523,39 @@ function getDisplayInfo(c, now) {
   return { timeStr, dateStr, abbr, offset };
 }
 
+function getPeriodClass(hour) {
+  if (hour >= 8 && hour < 18) return 'open';
+  if ((hour >= 6 && hour < 8) || (hour >= 18 && hour < 21)) return 'edge';
+  return 'closed';
+}
+
+function getPeriodLabel(cls) {
+  if (cls === 'open') return 'Ouvré';
+  if (cls === 'edge') return 'Limite';
+  return 'Fermé';
+}
+
 function togglePin(name) {
   if (pinnedSet.has(name)) pinnedSet.delete(name);
   else pinnedSet.add(name);
   tick();
 }
 
-function renderCard(c, info, ectTimeStr) {
+function renderCard(c, info, ectTimeStr, showBadge) {
   const isPinned = pinnedSet.has(c.name);
   const capDateStr = info.dateStr.charAt(0).toUpperCase() + info.dateStr.slice(1);
   const card = document.createElement('div');
   card.className = 'card' + (isPinned ? ' highlight' : '');
+
+  let badgeHtml = '';
+  if (showBadge) {
+    const [hh] = info.timeStr.split(':').map(Number);
+    const cls = getPeriodClass(hh);
+    badgeHtml = `<span class="meeting-badge ${cls}">${getPeriodLabel(cls)}</span>`;
+  }
+
   card.innerHTML = `
+    ${badgeHtml}
     <button class="pin-btn${isPinned ? ' active' : ''}" title="${isPinned ? 'Désépingler' : 'Épingler'}" aria-label="${isPinned ? 'Désépingler' : 'Épingler'} ${c.name}">📌</button>
     <div class="country"><span class="flag fi fi-${c.iso}"></span> ${c.name}</div>
     <div class="zone">${c.tz}</div>
@@ -404,18 +579,31 @@ function tick() {
   document.getElementById('utc-date').textContent =
     now.toLocaleDateString('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-  // GMT is numerically the same as UTC
   document.getElementById('gmt-time').textContent =
     now.toISOString().substring(11, 16);
 
-  // ECT (European Central Time) — fixed UTC+1, no DST
   const ectDate = new Date(now.getTime() + 60 * 60000);
   const ectTimeStr = ectDate.toISOString().substring(11, 16);
   document.getElementById('ect-time').textContent = ectTimeStr;
 
-  const withInfo = countries.map(c => ({ c, info: getDisplayInfo(c, now) }));
+  const displayInstant = (meetingMode && meetingInstant) ? meetingInstant : now;
 
-  // Pinned countries always shown first, ungrouped, A→Z
+  if (meetingMode && meetingInstant) {
+    const refName = refCountrySelect.value;
+    const capDate = new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    }).format(meetingInstant);
+    meetingIndicator.textContent = `🕒 Réunion simulée : ${refTimeInput.value} (${refName}) — ${capDate.charAt(0).toUpperCase() + capDate.slice(1)}`;
+  } else {
+    meetingIndicator.textContent = '';
+  }
+
+  let withInfo = countries.map(c => ({ c, info: getDisplayInfo(c, displayInstant) }));
+
+  if (searchTerm) {
+    withInfo = withInfo.filter(x => normalize(x.c.name).includes(searchTerm));
+  }
+
   const pinned = withInfo.filter(x => pinnedSet.has(x.c.name))
     .sort((a, b) => a.c.name.localeCompare(b.c.name, 'fr'));
   pinnedEl.innerHTML = '';
@@ -428,12 +616,11 @@ function tick() {
     section.appendChild(title);
     const grid = document.createElement('div');
     grid.className = 'grid';
-    pinned.forEach(x => grid.appendChild(renderCard(x.c, x.info, ectTimeStr)));
+    pinned.forEach(x => grid.appendChild(renderCard(x.c, x.info, ectTimeStr, meetingMode)));
     section.appendChild(grid);
     pinnedEl.appendChild(section);
   }
 
-  // Remaining countries, grouped by current GMT offset (ascending), A→Z within each group
   const rest = withInfo.filter(x => !pinnedSet.has(x.c.name));
   const byOffset = new Map();
   rest.forEach(x => {
@@ -457,12 +644,68 @@ function tick() {
     grid.className = 'grid';
 
     const members = byOffset.get(offset).sort((a, b) => a.c.name.localeCompare(b.c.name, 'fr'));
-    members.forEach(x => grid.appendChild(renderCard(x.c, x.info, ectTimeStr)));
+    members.forEach(x => grid.appendChild(renderCard(x.c, x.info, ectTimeStr, meetingMode)));
 
     group.appendChild(grid);
     groupsEl.appendChild(group);
   });
+
+  if (withInfo.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'no-results';
+    empty.textContent = 'Aucun pays ne correspond à votre recherche.';
+    groupsEl.appendChild(empty);
+  }
 }
+
+searchInput.addEventListener('input', () => {
+  searchTerm = normalize(searchInput.value.trim());
+  tick();
+});
+
+countries.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr')).forEach(c => {
+  const opt = document.createElement('option');
+  opt.value = c.name;
+  opt.textContent = c.name;
+  refCountrySelect.appendChild(opt);
+});
+refCountrySelect.value = 'Maroc';
+
+meetingToggleBtn.addEventListener('click', () => {
+  meetingMode = !meetingMode;
+  meetingToggleBtn.classList.toggle('active', meetingMode);
+  meetingPanel.style.display = meetingMode ? 'flex' : 'none';
+  if (meetingMode) {
+    const c = countries.find(x => x.name === refCountrySelect.value);
+    const info = getDisplayInfo(c, new Date());
+    refTimeInput.value = info.timeStr;
+  } else {
+    meetingInstant = null;
+  }
+  tick();
+});
+
+meetingApplyBtn.addEventListener('click', () => {
+  if (!refTimeInput.value) return;
+  const c = countries.find(x => x.name === refCountrySelect.value);
+  const now = new Date();
+  const infoNow = getDisplayInfo(c, now);
+  const [nh, nm] = infoNow.timeStr.split(':').map(Number);
+  const refNowMinutes = nh * 60 + nm;
+  const [dh, dm] = refTimeInput.value.split(':').map(Number);
+  const desiredMinutes = dh * 60 + dm;
+  const diff = desiredMinutes - refNowMinutes;
+  meetingInstant = new Date(now.getTime() + diff * 60000);
+  tick();
+});
+
+meetingResetBtn.addEventListener('click', () => {
+  meetingMode = false;
+  meetingInstant = null;
+  meetingToggleBtn.classList.remove('active');
+  meetingPanel.style.display = 'none';
+  tick();
+});
 
 tick();
 setInterval(tick, 1000);
