@@ -251,6 +251,12 @@
     padding-right: 30px;
   }
 
+  .card .country .iso-code {
+    font-weight: 500;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
   .card .flag {
     margin-right: 6px;
     border-radius: 2px;
@@ -446,6 +452,7 @@ const countries = [
   { name: "Liberia", iso: "lr", tz: "Africa/Monrovia" },
   { name: "Madagascar", iso: "mg", tz: "Indian/Antananarivo" },
   { name: "Mali", iso: "ml", tz: "Africa/Bamako" },
+  { name: "République Centrafricaine", iso: "cf", tz: "Africa/Bangui" },
   { name: "République Démocratique du Congo", iso: "cd", tz: "Africa/Kinshasa" },
   { name: "Sénégal", iso: "sn", tz: "Africa/Dakar" },
   { name: "Sierra Leone", iso: "sl", tz: "Africa/Freetown" },
@@ -566,7 +573,7 @@ function renderCard(c, info, ectTimeStr, showBadge) {
 
   card.innerHTML = `
     <button class="pin-btn${isPinned ? ' active' : ''}" title="${isPinned ? 'Désépingler' : 'Épingler'}" aria-label="${isPinned ? 'Désépingler' : 'Épingler'} ${c.name}">📌</button>
-    <div class="country">${badgeHtml}<span class="flag fi fi-${c.iso}"></span> ${c.name}</div>
+    <div class="country">${badgeHtml}<span class="flag fi fi-${c.iso}"></span> ${c.name} <span class="iso-code">— ${c.iso.toUpperCase()}</span></div>
     <div class="zone">${c.tz}</div>
     <div class="time">${info.timeStr}</div>
     <div class="date">${capDateStr}</div>
